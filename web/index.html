@@ -1,0 +1,215 @@
+
+<html>
+	<meta charset="UTF-8">
+	<title>Respondé: Event Staking</title>
+	<style>
+	#main_content {
+		display:none;
+	}
+	#event_cards {
+		display:flex;
+		margin:10px;
+	}
+	.event_card {
+		flex-flow: row wrap;
+		border-radius:8px;
+		box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+		padding:10px;
+		margin:10px;
+	}
+	.event_card > div {
+		margin:3px;
+	}
+	.event_card label {
+		width: 140px;
+		font-weight:bold;
+		text-align:right;
+		display:inline-block;
+		margin-right:7px;
+	}
+	.button-41 {
+		background-color: initial;
+		background-image: linear-gradient(-180deg, #00D775, #00BD68);
+		border-radius: 5px;
+		box-shadow: rgba(0, 0, 0, 0.1) 0 2px 4px;
+		color: #FFFFFF;
+		cursor: pointer;
+		display: inline-block;
+		font-family: Inter,-apple-system,system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+		height: 44px;
+		line-height: 44px;
+		outline: 0;
+		overflow: hidden;
+		padding: 0 20px;
+		pointer-events: auto;
+		position: relative;
+		text-align: center;
+		touch-action: manipulation;
+		user-select: none;
+		-webkit-user-select: none;
+		vertical-align: top;
+		white-space: nowrap;
+		width: 80%;
+		z-index: 9;
+		border: 0;
+	}
+	.button-41:hover {
+		background: #00bd68;
+	}
+	.button-41.yellow {
+		background-image: linear-gradient(-180deg, #A3A300, #B3A300);
+	}
+	.button-41.yellow:hover {
+		background: #B3A300;
+	}
+	.button-41.gray {
+		background: gray;
+	}
+	.button-42 {
+	background-color: initial;
+	background-image: linear-gradient(-180deg, #FF7E31, #E62C03);
+	border-radius: 6px;
+	box-shadow: rgba(0, 0, 0, 0.1) 0 2px 4px;
+	color: #FFFFFF;
+	cursor: pointer;
+	display: inline-block;
+	font-family: Inter,-apple-system,system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+	height: 40px;
+	line-height: 40px;
+	outline: 0;
+	overflow: hidden;
+	padding: 0 20px;
+	pointer-events: auto;
+	position: relative;
+	text-align: center;
+	touch-action: manipulation;
+	user-select: none;
+	-webkit-user-select: none;
+	vertical-align: top;
+	white-space: nowrap;
+	width: 100%;
+	z-index: 9;
+	border: 0;
+	transition: box-shadow .2s;
+	}
+
+	.button-42:hover {
+	box-shadow: rgba(253, 76, 0, 0.5) 0 3px 8px;
+	}
+	#header_right {
+		margin-top:-5px;
+		margin-right:35px;
+	}
+	</style>
+	<body id="body">
+		<div id="loading">loading...</div>
+		<div id="main_content">
+			<div id='headerbar' style='box-shadow: rgba(0, 0, 0, 0.35) 0px 3px 15px;'>
+				<div style='background-color:rgba(54, 126, 33, 1);color:white;padding:10px;'>
+					<span style='font-size:26px;padding:10px;vertical-align:top;font-family:SenjaSantuy;'>Respondé</span>
+					<div id='header_right' style='float:right;'>
+						<span id="connect_wallet_btn" class='button-42'>Connect Wallet</span>
+					</div>
+				</div>
+			</div>
+			<div id="event_cards">
+			</div>
+		</div>
+	</body>
+	<script src='https://cdn.jsdelivr.net/npm/@reach-sh/stdlib@0.1.11-rc.7/dist/browser/reachsdk.min.js'></script>
+	<script src='https://code.jquery.com/jquery-1.12.4.min.js'></script>
+	<script src='https://code.jquery.com/ui/1.13.2/jquery-ui.min.js'></script>
+	<script>
+	$(function() {
+		$('#connect_wallet_btn').click(() => {
+			setWFB('PeraConnect');
+		});
+
+		var events = [
+			{"type":"BigNumber","hex":"0x2e"},
+			{"type":"BigNumber","hex":"0x5c"},
+			{"type":"BigNumber","hex":"0x76"},
+			{"type":"BigNumber","hex":"0x8f"},
+		];
+
+		let stdlib;
+		let ctc;
+
+		const truncateAddr = (addr) => {
+			return addr.substring(0,4)+'...'+addr.substring(addr.length-4);
+		}
+
+		const loadReach = async () => {
+			stdlib = reachsdk.loadStdlib('ALGO');
+			stdlib.setProviderByName('LocalHost');
+			backend = await import(`../src/contract.new/build/index.main.mjs`);
+			console.log(backend);
+
+			let acc = await stdlib.newTestAccount(stdlib.parseCurrency(100));
+			console.log(acc);
+
+			for(i in events) {
+				let ctcInfo = events[i];
+				const ctc = acc.contract(backend,ctcInfo);
+
+				let organizerAddress = stdlib.formatAddress((await ctc.v.organizerAddress())[1]);
+				let networkTokenFee = (await ctc.v.networkTokenFee())[1];
+				let maxAttendees = (await ctc.v.maxAttendees())[1];
+				let numAttendees = (await ctc.v.numAttendees())[1];
+				let [ totalStakedNetwork, totalStakedNonnetwork ] = (await ctc.v.totalStaked())[1];
+
+				let salesOpen = (await ctc.v.salesOpen())[1];
+				let eventEnded = (await ctc.v.eventEnded())[1];
+
+				let isAttendee = (await ctc.v.isAttendee(acc.getAddress()))[1];
+
+				let evtBox = `<div class='event_card' ctcInfo='${JSON.stringify(ctcInfo)}'>
+								<div title='${organizerAddress}'>
+									<label>Organizer:</label>
+									<span>${truncateAddr(organizerAddress)}</span>
+								</div>
+								<div>
+									<label>Ticket Price:</label>
+									<span>${stdlib.formatCurrency(networkTokenFee)} ALGO</span>
+								</div>
+								<div>
+									<label>Tickets Remaining:</label>
+									<span>${maxAttendees - numAttendees} / ${maxAttendees}</span>
+								</div>
+								<div>
+									<label>Total Staked:</label>
+									<span>${stdlib.formatCurrency(totalStakedNetwork)} ALGO</span>
+								</div>
+								<br/>`;
+
+				if (salesOpen) {
+					evtBox += `<div class='button-41 green'>Purchase Ticket</div>`;
+				}
+				else if (!eventEnded) {
+					evtBox += `<div class='button-41 yellow'>Claim Reward</div>`;
+				}
+				else {
+					evtBox += `<div class='button-41 gray'>Event Ended</div>`;
+				}
+				
+				evtBox += `</div>`;
+				$('#event_cards').append(evtBox);
+			}
+
+			// show application
+			$('#loading').remove();
+			$('#main_content').show();
+
+		};
+
+		const setWFB = async (wallet) => {
+			stdlib = reachsdk.loadStdlib();
+			stdlib.setWalletFallback(reach.walletFallback({providerEnv: 'TestNet', WalletConnect: reachsdk[`ALGO_WalletConnect`]}));
+			acc = await reach.getDefaultAccount();
+		};
+
+		loadReach();
+
+	});
+	</script>
+</html>
